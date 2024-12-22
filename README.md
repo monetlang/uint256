@@ -1,24 +1,21 @@
 # UInt256
 
-Zero-dependency implementation of 256-bit integer type.
+Zero-dependency implementation of 256-bit integer type with a [transparent API]().
 
 ## Aims
 
 ### Light-weight
 
-It should rely on no dependencies that the library can be used to run on bare metal.
+It should not rely on dependencies and that the library can potentially be used to run on bare metal.
 
-### Learning through API
+### Transparent API
 
-The API is designed so that one can learn the workings of the library through coding because it is self-descriptive and transparent.
-
-### No obscure defaults
-
+The API is designed so that one can learn the workings of the library through coding in a self-descriptive and transparent way.
 The library attempts to be as transparent as possible than to hide certain inner workings in the form of default values for short productivity gain. This can be taxing at first, but just like Rust, understanding how it works will result in sustainable productivity.
 
-## features
+## Examples
 
-- `UIntBuilder` for simple, declarative and self-descriptiveness.
+Here is example usage of `UIntBuilder` to build a `UInt256` type.
 
 ```rust
 let num = UIntBuilder::new()
@@ -31,7 +28,11 @@ let num = UIntBuilder::new()
     ]).build();
 ```
 
-Without calling `with_endian` this operation will panic. You are hence encouraged to learn about [endianness]() to build a `UInt256` type.
+**Note the following:**
+
+- Without calling `with_endian(Endian)` this operation will panic. There is no assumption of a default [endianness](https://dev.to/pancy/what-are-big-and-little-endians-91h). You are responsible to learn about  and configure it.
+- `from_ bytes([u8; 32])` takes a bytes array of exactly 32 bytes, not vectors. Fixed-size bytes array ensure correctness of data.
+- If you want to pass a vector, you will be required to call `with_padding(Padding)` to pad the "missing space" of the bytes vector provided. Check out the following example.
 
 ```rust
 let num = UInt256Builder::new()
@@ -41,8 +42,4 @@ let num = UInt256Builder::new()
     .build();
 ```
 
-In this example, `with_padding(Padding)` is called. You could pad a `u8` to fill the left or right side of the bytes you provide. Note that subsequently `from_partial_bytes(Vec<u8>)` should be called instead of `from_bytes([u8; 32])` or again it will fail.
-
-This is the concept of a "Learning API". There is no magic. Each call forces the user to know what they are doing.
-
-
+In this example, `with_padding(Padding)` is called. You could pad a `u8` to fill the left or right side of the bytes vector you provide. Note that subsequently you will be required to call `from_partial_bytes(Vec<u8>)` instead of `from_bytes([u8; 32])` or again it will panic.
