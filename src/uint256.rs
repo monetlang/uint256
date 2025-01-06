@@ -309,6 +309,40 @@ impl UInt256 {
     pub fn to_be_bytes(&self) -> Box<[u8; 32]> {
         self.as_bytes()
     }
+
+    /// Returns `true` if the bit at the given index is set; `false` otherwise.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` is greater than 255.
+    pub fn bit_at(&self, index: usize) -> bool {
+        assert!(index < 256, "Bit index out of range");
+
+        if index < 128 {
+            // Check bit in the `low` segment
+            (self.low & (1 << index)) != 0
+        } else {
+            // Check bit in the `high` segment
+            (self.high & (1 << (index - 128))) != 0
+        }
+    }
+
+    /// Sets the bit at the given index to 1.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` is greater than 255.
+    pub fn set_bit(&mut self, index: usize) {
+        assert!(index < 256, "Bit index out of range");
+
+        if index < 128 {
+            // Set bit in the `low` segment
+            self.low |= 1 << index;
+        } else {
+            // Set bit in the `high` segment
+            self.high |= 1 << (index - 128);
+        }
+    }
 }
 
 // Overloading comparison, shift, and subtraction operators
@@ -349,11 +383,32 @@ impl BitOr for UInt256 {
 
 // FIXME: This implementation hangs!
 pub fn divide(dividend: UInt256, divisor: UInt256) -> (UInt256, UInt256) {
-    let zero = UInt256::ZERO;
-    if dividend < divisor {
-        return (zero, zero,);
+    if divisor.is_zero() {
+        panic!("division by zero");
     }
 
+    if dividend < divisor {
+        return (UInt256::ZERO, dividend);
+    }
+
+    // let zero = UInt256::ZERO;
+
+    let mut quotient = UInt256::ZERO;
+    let mut remainder = UInt256::ZERO;
+
+    for i in (0..256).rev() {
+        remainder = remainder.shl(1);
+        remainder.low |= dividend.bit_at(i) as u128;
+
+        if remainder >= divisor {
+            remainder = remainder.sub(divisor);
+            quotient.set_bit(i);
+        }
+    }
+
+    (quotient, remainder)
+
+    /*
     if dividend.cmp(&divisor) == Ordering::Less {
         return (zero, zero,);
     }
@@ -364,10 +419,23 @@ pub fn divide(dividend: UInt256, divisor: UInt256) -> (UInt256, UInt256) {
 
     // Left shift divisor until it's greater than self, adjusting `power` for the quotient calculation
     let mut power_of_two = UInt256::new(0, 1, dividend.endian);
-    while remainder.cmp(&power.shl(1)) != Ordering::Less {
+
+    while remainder >= power.shl(1) {
+        println!("repeated");
         power = power.shl(1);
         power_of_two = power_of_two.shl(1);
     }
+
+    // while remainder.cmp(&power.shl(1)) != Ordering::Less {
+    //     println!("repeated");
+    //     power = power.shl(1);
+    //     power_of_two = power_of_two.shl(1);
+    // }
+
+    // while remainder.cmp(&power.shl(1)) >= Ordering::Less {
+    //     power = power.shl(1);
+    //     power_of_two = power_of_two.shl(1);
+    // }
 
     // Perform division by shifting and subtracting
     while power_of_two.cmp(&UInt256::new(0, 0, dividend.endian)) != Ordering::Equal {
@@ -382,6 +450,7 @@ pub fn divide(dividend: UInt256, divisor: UInt256) -> (UInt256, UInt256) {
         power_of_two = power_of_two.shr(1);
     }
     (quotient, remainder)
+    */
 }
 
 impl Div for UInt256 {
