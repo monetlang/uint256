@@ -391,8 +391,6 @@ pub fn divide(dividend: UInt256, divisor: UInt256) -> (UInt256, UInt256) {
         return (UInt256::ZERO, dividend);
     }
 
-    // let zero = UInt256::ZERO;
-
     let mut quotient = UInt256::ZERO;
     let mut remainder = UInt256::ZERO;
 
@@ -407,50 +405,6 @@ pub fn divide(dividend: UInt256, divisor: UInt256) -> (UInt256, UInt256) {
     }
 
     (quotient, remainder)
-
-    /*
-    if dividend.cmp(&divisor) == Ordering::Less {
-        return (zero, zero,);
-    }
-
-    let mut quotient = UInt256::ZERO;
-    let mut remainder = dividend;
-    let mut power = divisor;
-
-    // Left shift divisor until it's greater than self, adjusting `power` for the quotient calculation
-    let mut power_of_two = UInt256::new(0, 1, dividend.endian);
-
-    while remainder >= power.shl(1) {
-        println!("repeated");
-        power = power.shl(1);
-        power_of_two = power_of_two.shl(1);
-    }
-
-    // while remainder.cmp(&power.shl(1)) != Ordering::Less {
-    //     println!("repeated");
-    //     power = power.shl(1);
-    //     power_of_two = power_of_two.shl(1);
-    // }
-
-    // while remainder.cmp(&power.shl(1)) >= Ordering::Less {
-    //     power = power.shl(1);
-    //     power_of_two = power_of_two.shl(1);
-    // }
-
-    // Perform division by shifting and subtracting
-    while power_of_two.cmp(&UInt256::new(0, 0, dividend.endian)) != Ordering::Equal {
-        if power.is_zero() || power_of_two.is_zero() {
-            break;
-        }
-        if remainder.cmp(&power) != Ordering::Less {
-            remainder = remainder.sub(power);
-            quotient = quotient | power_of_two;
-        }
-        power = power.shr(1);
-        power_of_two = power_of_two.shr(1);
-    }
-    (quotient, remainder)
-    */
 }
 
 impl Div for UInt256 {
@@ -458,14 +412,8 @@ impl Div for UInt256 {
     type Output = Self;
 
     fn div(self, divisor: Self) -> Self {
-        match divisor {
-            UInt256 { high: 0, low: 0, .. } => panic!("division by zero"),
-            UInt256 { high: 0, low: 1, .. } => self,
-            _ => {
-                let (quotient, _) = divide(self, divisor);
-                quotient
-            }
-        }
+        let (quotient, _) = divide(self, divisor);
+        quotient
     }
 }
 
