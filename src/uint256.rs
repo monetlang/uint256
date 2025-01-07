@@ -29,7 +29,9 @@ pub mod utils {
         let mut padded = [with; 32];
         let len = data.len().min(32);
         match endian {
+            // Prepend the data to the padded array
             Endian::Big => padded[32 - len..].copy_from_slice(&data[..len]),
+            // Append the data to the padded array
             Endian::Little => padded[..len].copy_from_slice(&data[..len]),
         }
         padded
@@ -152,36 +154,53 @@ impl Default for Endian {
 #[derive(Debug, Default)]
 pub struct UInt256Builder {
     bytes: Box<[u8; 32]>,
-    endian: Endian,
-    padding: bool,
+    endian: Option<Endian>,
+    padding: Option<u8>,
 }
 
 impl UInt256Builder {
     pub fn new() -> Self {
         UInt256Builder {
             bytes: Box::new([0u8; 32]),
-            endian: DEFAULT_ENDIAN,
-            padding: false,
+            endian: None,
+            padding: None,
         }
     }
 
-    pub fn with_padding(&mut self) -> &mut Self {
-        self.padding = true;
+    pub fn with_padding(&mut self, padding: u8) -> &mut Self {
+        self.padding = Some(padding);
         self
     }
 
     pub fn with_endian(&mut self, endian: Endian) -> &mut Self {
-        self.endian = endian;
+        self.endian = Some(endian);
+        self
+    }
+
+    pub fn from_partial_bytes(&mut self, bytes: Vec<u8>) -> &mut Self {
+        if !self.padding.is_none() {
+            panic!("Padding is disabled. Call `from_bytes([u8; 32])` instead.");
+        }
+
+        if self.endian.is_none() {
+            panic!("Endian is not set. Call `with_endian(Endian)` before calling this method.");
+        }
+
+        let padded = utils::pad_bytes(&bytes, 0x00, self.endian.unwrap());
+        self.bytes = Box::new(padded);
         self
     }
 
     pub fn from_bytes(&mut self, bytes: &[u8; 32]) -> &mut Self {
+        if self.padding.is_some() {
+            panic!("Padding is enabled, cannot set raw bytes directly. Call `from_partial_bytes(Vec<u8>)` instead.");
+        }
         self.bytes = Box::new(*bytes);
         self
     }
 
     pub fn build(self) -> UInt256 {
-        utils::to_uint256(self.bytes.as_ref(), self.endian)
+        utils::to_uint256(self.bytes.as_ref(), self.endian.unwrap())
     }
 }
 

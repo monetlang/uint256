@@ -38,21 +38,21 @@ let num = UInt256Builder::new()
 
 - Without calling `with_endian(Endian)` this operation will panic. There is no assumption of a default [endianness](https://dev.to/pancy/what-are-big-and-little-endians-91h). You are responsible to learn about and configure it. There is no shortcut to not understand endianness and able to "run it".
 - `from_ bytes([u8; 32])` takes a bytes array of exactly 32 bytes, not vectors. Fixed-size bytes array ensure correctness of data. But more importantly, it ensures the user actually understand bytes data. Vectors would have completely glazed over this for the sake of friendliness. But real friends expect the best from you and put you on the spot, not letting you off easy so you can have a beer early.
-- If you want to pass a vector, you will be required to call `with_padding(Padding)` to pad the "missing space" of the bytes vector provided. This check once again check the user’s understanding of what he’s doing. 
+- If you want to pass a vector, you will be required to call `with_padding(Padding)` to pad the "missing space" of the bytes vector provided. This check once again check the user’s understanding of what he’s doing.
 
 Check out the following example.
 
 ```rust
 
 let num = UInt256Builder::new()
-    .with_padding(Padding::Left(0x00))
     .with_endian(Endian::Big)
+    .with_padding(0x00)
     .from_partial_bytes(vec![0xcd, 0xef])
     .build();
 
 ```
 
-In this example, `with_padding(Padding)` is called. You could pad a `u8` to fill the left or right side of the bytes vector you provide. Note that subsequently you will be required to call `from_partial_bytes(Vec<u8>)` instead of `from_bytes([u8; 32])` or again it will panic.
+In this example, `with_padding(Padding)` is called after `with_endian(Endian)`, which has to be called first. You could pad a `u8` to fill the left (Big-endian) or right (Little-endian) side of the bytes vector you provide. Note that subsequently you will be required to call `from_partial_bytes(Vec<u8>)` instead of `from_bytes([u8; 32])` or again it will panic.
 
 This code is equivalent to passing the following raw bytes array to build a UInt256 using `UInt256Builder` in the first example:
 
@@ -68,4 +68,3 @@ let bytes = [
 ```
 
 However, it is really hard to miss what one is doing when they are required to call with_padding(Padding).
-
