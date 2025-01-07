@@ -1,5 +1,7 @@
 # UInt256
 
+[![Crates.io](https://img.shields.io/crates/v/uint256)](https://crates.io/crates/uint256)
+
 Zero-dependency implementation of 256-bit integer type with a sane and [semantic API](https://dev.to/pancy/what-is-semantic-api-4i1j).
 
 ## Aims
