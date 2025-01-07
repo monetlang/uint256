@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{ops::{Add, BitOr, Div, Mul, Shl, Shr, Sub}, str::FromStr};
 use std::cmp::Ordering;
 
@@ -213,7 +215,7 @@ impl UInt256Builder {
     /// The `bytes` parameter specifies the input bytes to be padded to 32 bytes.
     /// Must be called after setting the endianness and setting the padding byte.
     pub fn from_partial_bytes(&mut self, bytes: Vec<u8>) -> &mut Self {
-        if !self.padding.is_none() {
+        if self.padding.is_none() {
             panic!("Padding is disabled. Call `from_bytes([u8; 32])` instead.");
         }
 
@@ -228,15 +230,15 @@ impl UInt256Builder {
 
     /// Set the raw bytes of the [`UInt256`] value.
     /// The `bytes` parameter specifies the raw bytes of the integer.
-    pub fn from_bytes(&mut self, bytes: &[u8; 32]) -> &mut Self {
+    pub fn from_bytes(&mut self, bytes: [u8; 32]) -> &mut Self {
         if self.padding.is_some() {
             panic!("Padding is enabled, cannot set raw bytes directly. Call `from_partial_bytes(Vec<u8>)` instead.");
         }
-        self.bytes = Box::new(*bytes);
+        self.bytes = Box::new(bytes);
         self
     }
 
-    pub fn build(self) -> UInt256 {
+    pub fn build(&mut self) -> UInt256 {
         utils::to_uint256(self.bytes.as_ref(), self.endian.unwrap())
     }
 }
@@ -255,6 +257,7 @@ impl UInt256Builder {
 ///
 /// ## Examples
 /// ```rust
+/// use std::str::FromStr;
 /// use uint256::{UInt256, Endian};
 ///
 /// let a = UInt256::from_str("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef").unwrap();
