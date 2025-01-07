@@ -2,5 +2,14 @@
 name = "uint256"
 version = "0.1.0"
 edition = "2021"
+authors = ["Pan Chasinga <jo.chasinga@gmail.com>"]
+description = "A light-weight implementation of 256-bit unsigned integers type with semantic API."
+repository = "https://github.com/monetlang/uint256"
+homepage = "https://github.com/monetlang/uint256"
+documentation = "https://github.com/monetlang/uint256/README.md"
+readme = "README.md"
+keywords = ["uint256", "evm", "ethereum", "monet", "filecoin"]
+categories = ["encoding", "mathematics", "algorithms", "data-structures"]
+license = "MIT"
 
 [dependencies]
