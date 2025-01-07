@@ -10,6 +10,6 @@ documentation = "https://github.com/monetlang/uint256/README.md"
 readme = "README.md"
 keywords = ["uint256", "evm", "ethereum", "monet", "filecoin"]
 categories = ["encoding", "mathematics", "algorithms", "data-structures"]
-license = "MIT"
+license = "Apache-2.0"
 
 [dependencies]

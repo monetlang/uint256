@@ -1,20 +1,23 @@
 use std::{ops::{Add, BitOr, Div, Mul, Shl, Shr, Sub}, str::FromStr};
 use std::cmp::Ordering;
 
-
+/// The endianness of the integer.
+///
+/// Endianness refers to the byte order of the integer.
+/// Read more [here](https://dev.to/pancy/what-are-big-and-little-endians-91h).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Endian {
     Little,
     Big,
 }
 
-pub mod utils {
+pub(crate) mod utils {
 
     //// Utility functions for converting between byte arrays and UInt256 values.
 
     use super::*;
 
-    pub struct BytesPair {
+    pub(crate) struct BytesPair {
         /// The low part (LSB) of the byte array.
         pub low: Box<[u8; 16]>,
         /// The high part (MSB) of the byte array.
@@ -25,7 +28,7 @@ pub mod utils {
     /// The `endian` parameter specifies the "endianness" of the input data, or
     /// basically just deciding whether to prepend or append the padding bytes.
     /// The existing bytes are copied to the padded array in the same order.
-    pub fn pad_bytes(data: &[u8], with: u8, endian: Endian) -> [u8; 32] {
+    pub(crate) fn pad_bytes(data: &[u8], with: u8, endian: Endian) -> [u8; 32] {
         let mut padded = [with; 32];
         let len = data.len().min(32);
         match endian {
@@ -38,7 +41,7 @@ pub mod utils {
     }
 
     /// Convert a 32-byte array to a UInt256 value based on the endian type provided.
-    pub fn to_uint256(bytes: &[u8; 32], endian: Endian) -> UInt256 {
+    pub(crate) fn to_uint256(bytes: &[u8; 32], endian: Endian) -> UInt256 {
         match endian {
             Endian::Little => UInt256::from_le_bytes(bytes),
             Endian::Big => UInt256::from_be_bytes(bytes),
@@ -46,7 +49,7 @@ pub mod utils {
     }
 
     /// Convert a 32-byte hexadecimal string to a `BytesPair` of 16-byte arrays.
-    pub fn hex_to_bytes_pair(n: &str, endian: Endian) -> Result<BytesPair, String> {
+    pub(crate) fn hex_to_bytes_pair(n: &str, endian: Endian) -> Result<BytesPair, String> {
 
         let a = n.trim().strip_prefix("0x").unwrap();
 
@@ -151,6 +154,29 @@ impl Default for Endian {
     }
 }
 
+/// A builder for creating `UInt256` values.
+///
+/// The builder allows setting the endianness and padding for the `UInt256` value
+/// in a semantic way.
+///
+/// ## Examples
+///
+/// ```rust
+/// use uint256::{UInt256Builder, Endian};
+///
+/// let my_bytes_array = [
+///     0xff, 0x45, 0x67, 0x89, 0x0a, 0xbc, 0xde, 0xf1,
+///     0x23, 0x45, 0x67, 0x89, 0x0a, 0xc2, 0x03, 0xd5,
+///     0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef,
+///     0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef,
+/// ];
+///
+/// let num = UInt256Builder::new()
+///     .with_endian(Endian::Big)
+///     .from_bytes(my_bytes_array)
+///     .build();
+/// ```
+///
 #[derive(Debug, Default)]
 pub struct UInt256Builder {
     bytes: Box<[u8; 32]>,
@@ -167,16 +193,25 @@ impl UInt256Builder {
         }
     }
 
+    /// Set the padding byte for the [`UInt256`] value.
+    /// The `padding` parameter specifies the byte value to pad the input bytes with to fill up to 32 bytes.
+    /// Must be called prior to calling [`Self::from_partial_bytes`].
     pub fn with_padding(&mut self, padding: u8) -> &mut Self {
         self.padding = Some(padding);
         self
     }
 
+    /// Set the endianness of the [`UInt256`] value.
+    /// The `endian` parameter specifies the byte order of the integer.
+    /// Must be called prior to calling [`Self::from_bytes`] or [`Self::from_partial_bytes`].
     pub fn with_endian(&mut self, endian: Endian) -> &mut Self {
         self.endian = Some(endian);
         self
     }
 
+    /// Set the bytes of the [`UInt256`] value from a partial byte vector.
+    /// The `bytes` parameter specifies the input bytes to be padded to 32 bytes.
+    /// Must be called after setting the endianness and setting the padding byte.
     pub fn from_partial_bytes(&mut self, bytes: Vec<u8>) -> &mut Self {
         if !self.padding.is_none() {
             panic!("Padding is disabled. Call `from_bytes([u8; 32])` instead.");
@@ -191,6 +226,8 @@ impl UInt256Builder {
         self
     }
 
+    /// Set the raw bytes of the [`UInt256`] value.
+    /// The `bytes` parameter specifies the raw bytes of the integer.
     pub fn from_bytes(&mut self, bytes: &[u8; 32]) -> &mut Self {
         if self.padding.is_some() {
             panic!("Padding is enabled, cannot set raw bytes directly. Call `from_partial_bytes(Vec<u8>)` instead.");
@@ -204,19 +241,41 @@ impl UInt256Builder {
     }
 }
 
+/// A 256-bit unsigned integer type.
+/// The [`UInt256`] type is a 256-bit unsigned integer type that supports basic arithmetic operations.
+/// It is represented as a pair of 128-bit unsigned integers, `high` and `low`.
+/// The `endian` field specifies the byte order of the integer.
+///
+/// - It is immutable and can be compared with other [`UInt256`] values.
+/// - It can be created from byte arrays, hexadecimal strings, and other integer types.
+/// - It can be converted to byte arrays, hexadecimal strings, and other integer types.
+///
+/// It is recommended to use the [`UInt256Builder`] to create [`UInt256`] values to avoid
+/// [Compiling and Praying to Work<sup>tm</sup>](https://raw.githubusercontent.com/denitdao/o-rly-collection/refs/heads/main/public/book_covers/compile-and-pray.jpeg).
+///
+/// ## Examples
+/// ```rust
+/// use uint256::{UInt256, Endian};
+///
+/// let a = UInt256::from_str("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef").unwrap();
+/// let b = UInt256::from_str("0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef").unwrap();
+/// println!("a + b = {}", a + b);
+/// ```
+///
 #[derive(Debug, Default, Clone, Copy, Eq, Hash)]
 pub struct UInt256 {
-    // First 16 bytes (128 bits). High means MSB or the left half.
+    /// First 16 bytes (128 bits). High means MSB or the left half.
     high: u128,
-    // Last 16 bytes (128 bits). Low means LSB or right half.
+    /// Last 16 bytes (128 bits). Low means LSB or right half.
     low: u128,
-    // Endianness (Is it needed here though).
+    /// Endianness (Is it needed here though).
     endian: Endian,
 }
 
 impl UInt256 {
     pub const ZERO: Self = Self { high: 0, low: 0, endian: Endian::Big };
     pub const ONE: Self = Self { high: 0, low: 1, endian: Endian::Big };
+    /// The maximum value of a 256-bit unsigned integer.
     pub const MAX: Self = Self {
         high: u128::MAX,
         low: u128::MAX,
@@ -259,7 +318,7 @@ impl UInt256 {
         Ok(self.low as usize)
     }
 
-    pub fn from_str_radix(s: &str, radix: u32, endian: Endian) -> Result<Self, &'static str> {
+    pub(crate) fn from_str_radix(s: &str, radix: u32, endian: Endian) -> Result<Self, &'static str> {
         let s = s.trim();
 
         if s.len() != 64 {
@@ -334,7 +393,7 @@ impl UInt256 {
     /// # Panics
     ///
     /// Panics if `index` is greater than 255.
-    pub fn bit_at(&self, index: usize) -> bool {
+    pub(crate) fn bit_at(&self, index: usize) -> bool {
         assert!(index < 256, "Bit index out of range");
 
         if index < 128 {
@@ -351,7 +410,7 @@ impl UInt256 {
     /// # Panics
     ///
     /// Panics if `index` is greater than 255.
-    pub fn set_bit(&mut self, index: usize) {
+    pub(crate) fn set_bit(&mut self, index: usize) {
         assert!(index < 256, "Bit index out of range");
 
         if index < 128 {
@@ -400,8 +459,7 @@ impl BitOr for UInt256 {
     }
 }
 
-// FIXME: This implementation hangs!
-pub fn divide(dividend: UInt256, divisor: UInt256) -> (UInt256, UInt256) {
+fn divide(dividend: UInt256, divisor: UInt256) -> (UInt256, UInt256) {
     if divisor.is_zero() {
         panic!("division by zero");
     }
